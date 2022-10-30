@@ -11,7 +11,11 @@ function main () {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getActiveSheet();
 
-    const lastRow = sheet.getLastRow() || 1;
+    const lastRow = sheet.getLastRow();
+    if (lastRow === 0) {
+        sheet.getRange(1, 1, 1, ROWS.length).setValues([[...ROWS]]);
+    }
+    const startRow = lastRow ? lastRow + 1 : 2;
 
     const lastId = lastRow > 1 ? sheet.getRange(lastRow, 1).getValue() : 0;
     const timetableDiff = json.filter(v => v.id > lastId).reverse().map(v => parseNest(v, "baseinfo"));
@@ -23,11 +27,11 @@ function main () {
 
     for (const [index, key] of ROWS.entries() as arrEntries<typeof ROWS>) {
         const formatStr = FORMAT_TYPES[ROWS_FORMAT[key]];
-        // sheet.getRange(lastRow + 1, index + 1, writeData.length, 1).setNumberFormat(formatStr);
-        sheet.getRange(2, index + 1, lastRow - 1 + writeData.length, 1).setNumberFormat(formatStr);
+        // sheet.getRange(startRow, index + 1, writeData.length, 1).setNumberFormat(formatStr);
+        sheet.getRange(2, index + 1, startRow - 2 + writeData.length, 1).setNumberFormat(formatStr);
     }
 
-    sheet.getRange(lastRow + 1, 1, writeData.length, writeData[0].length).setValues(writeData);
+    sheet.getRange(startRow, 1, writeData.length, writeData[0].length).setValues(writeData);
 }
 
 type Join<K, P> = K extends string | number ? P extends string | number ? `${K}.${P}` : never : never
