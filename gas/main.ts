@@ -8,7 +8,7 @@ function test() {
 
     const lastRow = sheet.getLastRow();
 
-    const lastId = sheet.getRange(lastRow, 1).getValue();
+    const lastId = lastRow > 1 ? sheet.getRange(lastRow, 1).getValue() : 0;
     const timetableDiff = json.filter(v => v.id > lastId).reverse();
 
     const writeData = timetableDiff.map(v => Object.entries(v).map(([k, v]) => convertString[k](v)));
