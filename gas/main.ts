@@ -12,9 +12,9 @@ function test() {
     const timetableDiff = json.filter(v => v.id > lastId).reverse();
 
     const writeData = timetableDiff.map(v => Object.entries(v).map(([k, v]) => convertString[k](v)));
-    sheet.getRange(lastRow, 9, writeData.length, 1).setNumberFormat('@');
-    sheet.getRange(lastRow, 14, writeData.length, 1).setNumberFormat('@');
-    sheet.getRange(lastRow, 1, writeData.length, writeData[0].length).setValues(writeData);
+    sheet.getRange(lastRow + 1, 9, writeData.length, 1).setNumberFormat('@');
+    sheet.getRange(lastRow + 1, 14, writeData.length, 1).setNumberFormat('@');
+    sheet.getRange(lastRow + 1, 1, writeData.length, writeData[0].length).setValues(writeData);
 }
 
 const convertString: Record<string, (v: any) => string> = {
