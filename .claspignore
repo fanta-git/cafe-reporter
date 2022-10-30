@@ -1,3 +1,4 @@
 **/**
 !*.ts
+_*.ts
 !appsscript.json
