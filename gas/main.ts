@@ -10,6 +10,7 @@ function test() {
 
     const lastId = lastRow > 1 ? sheet.getRange(lastRow, 1).getValue() : 0;
     const timetableDiff = json.filter(v => v.id > lastId).reverse();
+    if (timetableDiff.length === 0) return;
 
     const writeData = timetableDiff.map(v => Object.entries(v).map(([k, v]) => convertString[k](v)));
     sheet.getRange(lastRow + 1, 9, writeData.length, 1).setNumberFormat('@');
