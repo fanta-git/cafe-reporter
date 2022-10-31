@@ -19,6 +19,7 @@ function main () {
 
     const lastId = lastRow > 1 ? sheet.getRange(lastRow, 1).getValue() : 0;
     const timetableDiff = json.filter(v => v.id > lastId).reverse().map(v => parseNest(v, "baseinfo"));
+    timetableDiff.pop();
     if (timetableDiff.length === 0) return;
 
     const writeData: (number | string)[][] = timetableDiff.map(v => ROWS.map(k => {
