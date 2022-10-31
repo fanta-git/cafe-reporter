@@ -3,11 +3,6 @@ import { timetableItem } from "./_types";
 type arrEntries<T extends readonly any[]> = IterableIterator<[number, T[number]]>;
 
 function main () {
-    const response = UrlFetchApp.fetch("https://cafeapi.kiite.jp/api/cafe/timetable?limit=100");
-    if (response.getResponseCode() !== 200) throw Error(response.getResponseCode() + " Error");
-    const json = JSON.parse(response.getContentText()) as timetableItem[];
-    if (json == null) throw Error("APIの取得に失敗しました");
-
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getActiveSheet();
 
@@ -17,12 +12,16 @@ function main () {
     }
     const startRow = lastRow ? lastRow + 1 : 2;
 
+    const timetable = fetchApi("https://cafeapi.kiite.jp/api/cafe/timetable?limit=100") as timetableItem[];
     const lastId = lastRow > 1 ? sheet.getRange(lastRow, 1).getValue() : 0;
-    const timetableDiff = json.filter(v => v.id > lastId).reverse().map(v => parseNest(v, "baseinfo"));
+    const timetableDiff = timetable.filter(v => v.id > lastId).reverse().map(v => parseNest(v, "baseinfo"));
     timetableDiff.pop();
     if (timetableDiff.length === 0) return;
 
-    const writeData: (number | string)[][] = timetableDiff.map(v => ROWS.map(k => {
+    const rotateUsers = fetchApi("https://cafeapi.kiite.jp/api/cafe/rotate_users?ids=" + timetableDiff.map(v => v.id).join(",")) as Record<number, number[] | undefined>;
+    const timetableWithRotate = timetableDiff.map(v => ({ ...v, rotate_users: rotateUsers[v.id] ?? null }));
+
+    const writeData: (number | string)[][] = timetableWithRotate.map(v => ROWS.map(k => {
         return CONVERT_FUNC[ROWS_FORMAT[k]](v[k]);
     }));
 
@@ -33,6 +32,15 @@ function main () {
     }
 
     sheet.getRange(startRow, 1, writeData.length, writeData[0].length).setValues(writeData);
+}
+
+function fetchApi (url: string) {
+    const response = UrlFetchApp.fetch(url);
+    if (response.getResponseCode() !== 200) throw Error(response.getResponseCode() + " Error");
+    const json = JSON.parse(response.getContentText());
+    if (json == null) throw Error("APIの取得に失敗しました");
+
+    return json;
 }
 
 type Join<K, P> = K extends string | number ? P extends string | number ? `${K}.${P}` : never : never
@@ -64,6 +72,7 @@ const ROWS = [
     "reasons",
     "thumbnail",
     "new_fav_user_ids",
+    "rotate_users",
     "baseinfo.video_id",
     "baseinfo.title",
     "baseinfo.first_retrieve",
@@ -104,6 +113,7 @@ const ROWS_FORMAT = {
     reasons: "json",
     thumbnail: "string",
     new_fav_user_ids: "list",
+    rotate_users: "list",
     "baseinfo.video_id": "string",
     "baseinfo.title": "string",
     "baseinfo.first_retrieve": "date",
