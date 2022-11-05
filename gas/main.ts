@@ -5,7 +5,7 @@ type arrEntries<T extends readonly any[]> = IterableIterator<[number, T[number]]
 function main () {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    const timetable = fetchApi("https://cafeapi.kiite.jp/api/cafe/timetable?limit=100").reverse() as timetableItem[];
+    const timetable = fetchApi("https://cafe.kiite.jp/api/cafe/timetable?limit=100").reverse() as timetableItem[];
     timetable.pop();
 
     const divided: Record<string, timetableItem[]> = {};
@@ -28,7 +28,7 @@ function main () {
         const timetableDiff = monthlyTimetable.filter(v => v.id > lastId).map(v => parseNest(v, "baseinfo"));
         if (timetableDiff.length === 0) return;
 
-        const rotateUsers = fetchApi("https://cafeapi.kiite.jp/api/cafe/rotate_users?ids=" + timetableDiff.map(v => v.id).join(",")) as Record<number, number[] | undefined>;
+        const rotateUsers = fetchApi("https://cafe.kiite.jp/api/cafe/rotate_users?ids=" + timetableDiff.map(v => v.id).join(",")) as Record<number, number[] | undefined>;
         const timetableWithRotate = timetableDiff.map(v => ({ ...v, rotate_users: rotateUsers[v.id] ?? null }));
 
         const writeData: (number | string)[][] = timetableWithRotate.map(v => ROWS.map(k => {
