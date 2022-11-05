@@ -4,34 +4,44 @@ type arrEntries<T extends readonly any[]> = IterableIterator<[number, T[number]]
 
 function main () {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getActiveSheet();
 
-    const lastRow = sheet.getLastRow();
-    if (lastRow === 0) {
-        sheet.getRange(1, 1, 1, ROWS.length).setValues([[...ROWS]]);
-    }
-    const startRow = lastRow ? lastRow + 1 : 2;
+    const timetable = fetchApi("https://cafeapi.kiite.jp/api/cafe/timetable?limit=100").reverse() as timetableItem[];
+    timetable.pop();
 
-    const timetable = fetchApi("https://cafeapi.kiite.jp/api/cafe/timetable?limit=100") as timetableItem[];
-    const lastId = lastRow > 1 ? sheet.getRange(lastRow, 1).getValue() : 0;
-    const timetableDiff = timetable.filter(v => v.id > lastId).reverse().map(v => parseNest(v, "baseinfo"));
-    timetableDiff.pop();
-    if (timetableDiff.length === 0) return;
-
-    const rotateUsers = fetchApi("https://cafeapi.kiite.jp/api/cafe/rotate_users?ids=" + timetableDiff.map(v => v.id).join(",")) as Record<number, number[] | undefined>;
-    const timetableWithRotate = timetableDiff.map(v => ({ ...v, rotate_users: rotateUsers[v.id] ?? null }));
-
-    const writeData: (number | string)[][] = timetableWithRotate.map(v => ROWS.map(k => {
-        return CONVERT_FUNC[ROWS_FORMAT[k]](v[k]);
-    }));
-
-    for (const [index, key] of ROWS.entries() as arrEntries<typeof ROWS>) {
-        const formatStr = FORMAT_TYPES[ROWS_FORMAT[key]];
-        // sheet.getRange(startRow, index + 1, writeData.length, 1).setNumberFormat(formatStr);
-        sheet.getRange(2, index + 1, startRow - 2 + writeData.length, 1).setNumberFormat(formatStr);
+    const divided: Record<string, timetableItem[]> = {};
+    for (const item of timetable) {
+        const sheetName = formatSheetName(item.start_time);
+        divided[sheetName] = divided[sheetName] ?? [];
+        divided[sheetName].push(item);
     }
 
-    sheet.getRange(startRow, 1, writeData.length, writeData[0].length).setValues(writeData);
+    for (const [sheetName, monthlyTimetable] of Object.entries(divided)) {
+        const sheet = ss.getSheetByName(sheetName) ?? ss.insertSheet().setName(sheetName);
+
+        const lastRow = sheet.getLastRow();
+        if (lastRow === 0) {
+            sheet.getRange(1, 1, 1, ROWS.length).setValues([[...ROWS]]);
+        }
+        const startRow = lastRow ? lastRow + 1 : 2;
+
+        const lastId = lastRow > 1 ? sheet.getRange(lastRow, 1).getValue() : 0;
+        const timetableDiff = monthlyTimetable.filter(v => v.id > lastId).map(v => parseNest(v, "baseinfo"));
+        if (timetableDiff.length === 0) return;
+
+        const rotateUsers = fetchApi("https://cafeapi.kiite.jp/api/cafe/rotate_users?ids=" + timetableDiff.map(v => v.id).join(",")) as Record<number, number[] | undefined>;
+        const timetableWithRotate = timetableDiff.map(v => ({ ...v, rotate_users: rotateUsers[v.id] ?? null }));
+
+        const writeData: (number | string)[][] = timetableWithRotate.map(v => ROWS.map(k => {
+            return CONVERT_FUNC[ROWS_FORMAT[k]](v[k]);
+        }));
+
+        for (const [index, key] of ROWS.entries() as arrEntries<typeof ROWS>) {
+            const formatStr = FORMAT_TYPES[ROWS_FORMAT[key]];
+            sheet.getRange(startRow, index + 1, writeData.length, 1).setNumberFormat(formatStr);
+        }
+
+        sheet.getRange(startRow, 1, writeData.length, writeData[0].length).setValues(writeData);
+    }
 }
 
 function fetchApi (url: string) {
@@ -41,6 +51,13 @@ function fetchApi (url: string) {
     if (json == null) throw Error("APIの取得に失敗しました");
 
     return json;
+}
+
+function formatSheetName (dataStr: string)  {
+    const date = new Date(dataStr);
+    const yy = date.getFullYear().toString();
+    const mm = (date.getMonth() + 1).toString().padStart(2, "0");
+    return `timetable_${yy}_${mm}`;
 }
 
 type Join<K, P> = K extends string | number ? P extends string | number ? `${K}.${P}` : never : never
