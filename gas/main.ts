@@ -1,4 +1,4 @@
-import { timetableItem } from "./_types";
+import { snsSongs, timetableItem } from "./_types";
 
 type arrEntries<T extends readonly any[]> = IterableIterator<[number, T[number]]>;
 
@@ -29,9 +29,15 @@ function main () {
         if (timetableDiff.length === 0) return;
 
         const rotateUsers = fetchApi("https://cafe.kiite.jp/api/cafe/rotate_users?ids=" + timetableDiff.map(v => v.id).join(",")) as Record<number, number[] | undefined>;
-        const timetableWithRotate = timetableDiff.map(v => ({ ...v, rotate_users: rotateUsers[v.id] ?? null }));
+        const kiiteSongData = fetchApi("https://cafe.kiite.jp/api/sns/songs?video_ids=" + timetableDiff.map(v => v.video_id).join(",")) as snsSongs;
+        const songsDataArr = Array.from(Object.assign(kiiteSongData.songs, { length: timetableDiff.length }));
+        const combinedTimetable = timetableDiff.map(v => ({
+            ...v,
+            rotate_users: rotateUsers[v.id] ?? null,
+            fav_count: songsDataArr.find(song => song.video_id === v.video_id)?.fav_count ?? 0
+        }));
 
-        const writeData: (number | string)[][] = timetableWithRotate.map(v => ROWS.map(k => {
+        const writeData: (number | string)[][] = combinedTimetable.map(v => ROWS.map(k => {
             return CONVERT_FUNC[ROWS_FORMAT[k]](v[k]);
         }));
 
@@ -119,7 +125,8 @@ const ROWS = [
     "now_message",
     "rotate_action",
     "bpm",
-    "display_playlist_link"
+    "display_playlist_link",
+    "fav_count"
 ] as const;
 
 const ROWS_FORMAT = {
@@ -160,7 +167,8 @@ const ROWS_FORMAT = {
     now_message: "string",
     rotate_action: "string",
     bpm: "number",
-    display_playlist_link: "string"
+    display_playlist_link: "string",
+    fav_count: "number"
 } as const;
 
 const FORMAT_TYPES = {
@@ -176,7 +184,7 @@ const FORMAT_TYPES = {
 const CONVERT_FUNC = {
     string: nullableToStr,
     id: (v: any) => Number(v ?? -1),
-    number: (v: any) => Number(v ?? -1),
+    number: (v: any) => Number(v ?? 0),
     length: (v: any) => ["00", ...String(v ?? "0:00").split(":")].slice(-3).map(v => v.padStart(2, "0")).join(":"),
     list: (v: any) => v?.join?.(" ") ?? "null",
     date: (v: any) => v.split("+")[0],

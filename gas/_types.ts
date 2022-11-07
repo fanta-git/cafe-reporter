@@ -51,3 +51,28 @@ export type timetableItem = {
     bpm: number,
     display_playlist_link: boolean
 };
+
+export type snsSongs = {
+    status: string,
+    user: {
+        user_id: number,
+        user_name: string,
+        nickname: string,
+        avatar_url: string,
+        status: string
+    },
+    songs: Record<number, {
+        song_id: number,
+        song_unique: string,
+        song_title: string,
+        song_link: string,
+        video_id: string,
+        is_faved: boolean,
+        fav_count: number,
+        creator_id: number,
+        creator_unique: string,
+        creator_name: string,
+        creator_link: string,
+        thumbnail: string
+    }>
+};
