@@ -60,6 +60,13 @@ function formatSheetName (dataStr: string)  {
     return `timetable_${yy}_${mm}`;
 }
 
+function nullableToStr (val: any) {
+    if (val == null) return "null";
+    const str = String(val);
+    if (/^_*null$/.test(str)) return "_" + str;
+    return str;
+}
+
 type Join<K, P> = K extends string | number ? P extends string | number ? `${K}.${P}` : never : never
 type UnJoin<K> = K extends `${any}.${infer U}` ? U : never;
 
@@ -167,11 +174,11 @@ const FORMAT_TYPES = {
 } as const;
 
 const CONVERT_FUNC = {
-    string: (v: any) => String(v ?? "__null__"),
+    string: nullableToStr,
     id: (v: any) => Number(v ?? -1),
     number: (v: any) => Number(v ?? -1),
     length: (v: any) => ["00", ...String(v ?? "0:00").split(":")].slice(-3).map(v => v.padStart(2, "0")).join(":"),
-    list: (v: any) => v?.join?.(" ") ?? "__null__",
+    list: (v: any) => v?.join?.(" ") ?? "null",
     date: (v: any) => v.split("+")[0],
     json: (v: any) => JSON.stringify(v)
 } as const;
